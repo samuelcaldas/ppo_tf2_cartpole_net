@@ -3,6 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+//
+using SixLabors.ImageSharp;
+using Gym.Environments;
+using Gym.Environments.Envs.Classic;
+using Gym.Rendering.WinForm;
+//
+using NumSharp;
+using static Tensorflow.Binding;
+using static Tensorflow.KerasApi;
 //import tensorflow as tf
 //from tensorflow import keras
 //import tensorflow_probability as tfp
@@ -14,23 +23,25 @@ namespace ppo_tf2_cartpole
 {
     class Model
     { //(keras.Model)
-        static void Model(var num_actions)
+        var dense1;
+        var dense2;
+        var value;
+        var policy_logits;
+        Model(var num_actions)
         {
-            super().__init__();
-            this.num_actions = num_actions;
-            this.dense1 = keras.layers.Dense(64, activation: "relu",
+            //super().__init__();
+            dense1 = keras.layers.Dense(64, activation: keras.activations.Relu,
                                              kernel_initializer: keras.initializers.he_normal());
-            this.dense2 = keras.layers.Dense(64, activation: "relu",
+            dense2 = keras.layers.Dense(64, activation: keras.activations.Relu,
                                              kernel_initializer: keras.initializers.he_normal());
-            this.value = keras.layers.Dense(1);
-            this.policy_logits = keras.layers.Dense(num_actions);
-
+            value = keras.layers.Dense(1);
+            policy_logits = keras.layers.Dense(num_actions);
         }
         static void call(var inputs)
         {
-            var x = this.dense1(inputs);
-            x = this.dense2(x);
-            return this.value(x), this.policy_logits(x);
+            var x = dense1(inputs);
+            x = dense2(x);
+            return (value.Apply(x), policy_logits.Apply(x));
         }
         static void action_value(var state)
         {
@@ -42,22 +53,23 @@ namespace ppo_tf2_cartpole
     }
     class Program
     {
-        static var STORE_PATH = "C:\\Users\\andre\\TensorBoard\\PPOCartpole";
-        static var CRITIC_LOSS_WEIGHT = 0.5;
-        static var ENTROPY_LOSS_WEIGHT = 0.01;
-        static var ENT_DISCOUNT_RATE = 0.995;
-        static var BATCH_SIZE = 64;
-        static var GAMMA = 0.99;
-        static var CLIP_VALUE = 0.2;
-        static var LR = 0.001;
+        static string STORE_PATH = "C:\\Users\\andre\\TensorBoard\\PPOCartpole";
+        static double CRITIC_LOSS_WEIGHT = 0.5;
+        static double ENTROPY_LOSS_WEIGHT = 0.01;
+        static double ENT_DISCOUNT_RATE = 0.995;
+        static int BATCH_SIZE = 64;
+        static double GAMMA = 0.99;
+        static double CLIP_VALUE = 0.2;
+        static double LR = 0.001;
 
-        static var NUM_TRAIN_EPOCHS = 10;
+        static int NUM_TRAIN_EPOCHS = 10;
 
-        static var env = gym.make("CartPole-v0");
-        static var state_size = 4;
-        static var num_actions = env.action_space.n;
+        //static var env = gym.make("CartPole-v0");
+        CartPoleEnv env = new CartPoleEnv(WinFormEnvViewer.Factory);
+        static int state_size = 4;
+        static int num_actions = env.action_space.n;
 
-        static var ent_discount_val = ENTROPY_LOSS_WEIGHT;
+        static double ent_discount_val = ENTROPY_LOSS_WEIGHT;
 
         static void critic_loss(var discounted_rewards, var value_est)
         {
